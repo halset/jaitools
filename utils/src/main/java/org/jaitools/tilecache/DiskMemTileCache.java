@@ -168,6 +168,14 @@ public class DiskMemTileCache extends Observable implements TileCache {
      * memory needs to be freed for other tiles).
      */
     public static final String KEY_ALWAYS_DISK_CACHE = "diskcache";
+    
+    /**
+     * Key for the parameters controlling whether the cache files are compressed or
+     * not when written to disk. If the value is {@link Boolean.TRUE}, the files are
+     * compressed using GZip. The default value is {@link Boolean.FALSE}, that is to 
+     * not compress the cache files.
+     */
+    public static final String KEY_COMPRESS_FILES = "compressFiles";
 
     /**
      * Key for the parameter controlling whether the cache will auto-flush
@@ -198,6 +206,9 @@ public class DiskMemTileCache extends Observable implements TileCache {
         desc = new ParamDesc(KEY_ALWAYS_DISK_CACHE, Boolean.class, Boolean.FALSE);
         paramDescriptors.put( desc.key, desc );
 
+        desc = new ParamDesc(KEY_COMPRESS_FILES, Boolean.class, Boolean.FALSE);
+        paramDescriptors.put( desc.key, desc );
+        
         desc = new ParamDesc(KEY_AUTO_FLUSH_MEMORY_ENABLED, Boolean.class, Boolean.FALSE);
         paramDescriptors.put( desc.key, desc );
 
@@ -218,6 +229,8 @@ public class DiskMemTileCache extends Observable implements TileCache {
     private float memThreshold;
 
     private boolean writeNewTilesToDisk;
+    
+    private boolean compressFiles = false;
 
     /**
      * Map of all cached tiles.
@@ -330,6 +343,14 @@ public class DiskMemTileCache extends Observable implements TileCache {
                 setAutoFlushMemoryEnabled((Boolean)o);
             }
         }
+        
+        desc = paramDescriptors.get(KEY_COMPRESS_FILES);
+        o = params.get(desc.key);
+        if (o != null) {
+            if (desc.typeOK(o)) {
+                compressFiles = ((Boolean)o).booleanValue();
+            }
+        }
 
         comparator = new TileAccessTimeComparator();
         sortedResidentTiles = new ArrayList<DiskCachedTile>();
@@ -351,7 +372,7 @@ public class DiskMemTileCache extends Observable implements TileCache {
     public void add(RenderedImage owner, int tileX, int tileY, Raster data) {
         add(owner, tileX, tileY, data, null);
     }
-		 
+    
     /**
      * Adds a tile to the cache if not already present.
      *
@@ -378,7 +399,7 @@ public class DiskMemTileCache extends Observable implements TileCache {
             }
 
             DiskCachedTile tile = new DiskCachedTile(
-                    key, owner, tileX, tileY, data, writeNewTilesToDisk, tileCacheMetric);
+                    key, owner, tileX, tileY, data, writeNewTilesToDisk, compressFiles, tileCacheMetric);
             tiles.put(key, tile);
 
             if ( makeResident(tile, data) ) {

@@ -36,8 +36,12 @@ import java.awt.image.DataBufferUShort;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.EnumSet;
@@ -45,6 +49,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
@@ -202,6 +208,7 @@ public final class DiskCachedTile implements CachedTile {
     private final int  dataLen;
     private final long memorySize;
     private File file;
+    private boolean compressFile = true;
     private final Point location;
     private final boolean isWritable;
 
@@ -255,6 +262,7 @@ public final class DiskCachedTile implements CachedTile {
      * @param raster the image data for this tile
      * @param writeToFile if true, the tile's data will be cached to disk
      *        immediately; if false, disk caching is deferred
+     * @param compressFile; is true, files on disk will be GZip compressed
      * @param tileCacheMetric optional tile cache metric for use in scheduling
      *        (may be {@code null})
      *
@@ -266,6 +274,7 @@ public final class DiskCachedTile implements CachedTile {
                   int tileY,
                   Raster raster,
                   boolean writeToFile,
+                  boolean compressFile,
                   Object tileCacheMetric) throws IOException {
 
         if (owner == null || raster == null) {
@@ -280,6 +289,7 @@ public final class DiskCachedTile implements CachedTile {
         this.tileCacheMetric = tileCacheMetric;
         this.location = raster.getBounds().getLocation();
         this.isWritable = (raster instanceof WritableRaster);
+        this.compressFile = compressFile;
 
         DataBuffer db = raster.getDataBuffer();
         numBanks = db.getNumBanks();
@@ -394,7 +404,7 @@ public final class DiskCachedTile implements CachedTile {
      * 
      * @return the disk cache file for this tile or {@code null}
      */
-    public File getFile() {
+    File getFile() {
         return file;
     }
 
@@ -483,13 +493,19 @@ public final class DiskCachedTile implements CachedTile {
      */
     Raster readData() {
         ImageInputStream strm = null;
+        GZIPInputStream gzin = null;
         DataBuffer dataBuf = null;
         RenderedImage img = ownerRef.get();
         Raster raster = null;
 
         if (file != null && img != null) {
             try {
-                strm = ImageIO.createImageInputStream(file);
+                if (compressFile) {
+                    gzin = new GZIPInputStream(new BufferedInputStream(new FileInputStream(file)));
+                    strm = ImageIO.createImageInputStream(gzin);
+                } else {
+                    strm = ImageIO.createImageInputStream(file);
+                }
 
                 switch (img.getSampleModel().getDataType()) {
                     case DataBuffer.TYPE_BYTE: {
@@ -569,6 +585,14 @@ public final class DiskCachedTile implements CachedTile {
             		}catch (Throwable e) {
 						// chew me
 					}
+            	
+            	if (gzin != null) {
+                    try{
+                        gzin.close();
+                    }catch (Throwable e) {
+                        // chew me
+                    }
+            	}
             }
         }
 
@@ -591,6 +615,7 @@ public final class DiskCachedTile implements CachedTile {
      */
     void writeData(Raster raster) throws IOException {
         ImageOutputStream strm = null;
+        GZIPOutputStream gzout = null;
         DataBuffer dataBuf = raster.getDataBuffer();
 
         if (file == null) {
@@ -599,7 +624,12 @@ public final class DiskCachedTile implements CachedTile {
         }
 
         try {
-            strm = ImageIO.createImageOutputStream(file);
+            if (compressFile) {
+                gzout = new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
+                strm = ImageIO.createImageOutputStream(gzout);
+            } else {
+                strm = ImageIO.createImageOutputStream(file);
+            }
 
             switch (dataBuf.getDataType()) {
                 case DataBuffer.TYPE_BYTE:
@@ -665,8 +695,7 @@ public final class DiskCachedTile implements CachedTile {
                 default:
                     throw new UnsupportedOperationException("Unsupported image data type");
             }
-
-
+            
         } catch (FileNotFoundException ex) {
             LOGGER.log(Level.SEVERE, "Failed to write image tile data", ex);
 
@@ -680,6 +709,11 @@ public final class DiskCachedTile implements CachedTile {
         		}catch (Throwable e) {
 					// chew me
 				}
+        	
+        	if (gzout != null) {
+        	    gzout.flush();
+        	    gzout.close();
+        	}
         }
     }
 

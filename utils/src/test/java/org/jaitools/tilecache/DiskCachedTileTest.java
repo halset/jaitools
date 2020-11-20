@@ -91,7 +91,7 @@ public class DiskCachedTileTest {
         // System.out.println("   getTile (testing for exception)");
 
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, false, null);
+                Integer.valueOf(1234), image, 0, 0, raster, false, false, null);
 
         instance.getTile();
     }
@@ -101,7 +101,7 @@ public class DiskCachedTileTest {
         // System.out.println("   getOwner");
 
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, false, null);
+                Integer.valueOf(1234), image, 0, 0, raster, false, false, null);
 
         RenderedImage result = instance.getOwner();
         assertEquals(result, image);
@@ -114,7 +114,7 @@ public class DiskCachedTileTest {
         long t0 = System.currentTimeMillis();
 
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, false, null);
+                Integer.valueOf(1234), image, 0, 0, raster, false, false, null);
 
         long t1 = System.currentTimeMillis();
 
@@ -127,7 +127,7 @@ public class DiskCachedTileTest {
         // System.out.println("   getTileSize");
 
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, false, null);
+                Integer.valueOf(1234), image, 0, 0, raster, false, false, null);
 
         long dataTypeSize = DataBuffer.getDataTypeSize(raster.getSampleModel().getDataType()) / 8;
         long expResult = dataTypeSize * TILE_WIDTH * TILE_WIDTH;
@@ -144,12 +144,12 @@ public class DiskCachedTileTest {
         // System.out.println("   cachedToDisk");
 
         DiskCachedTile instance1 = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, false, null);
+                Integer.valueOf(1234), image, 0, 0, raster, false, false, null);
 
         assertFalse(instance1.cachedToDisk());
 
         DiskCachedTile instance2 = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, true, null);
+                Integer.valueOf(1234), image, 0, 0, raster, true, false, null);
 
         assertTrue(instance2.cachedToDisk());
 
@@ -162,7 +162,7 @@ public class DiskCachedTileTest {
         // System.out.println("   deleteDiskCopy");
 
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, true, null);
+                Integer.valueOf(1234), image, 0, 0, raster, true, false, null);
 
         File file = instance.getFile();
         assertTrue(file != null);
@@ -177,7 +177,7 @@ public class DiskCachedTileTest {
         // System.out.println("   getTileId");
 
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, false, null);
+                Integer.valueOf(1234), image, 0, 0, raster, false, false, null);
 
         Object expResult = Integer.valueOf(1234);
         Object result = instance.getTileId();
@@ -189,7 +189,7 @@ public class DiskCachedTileTest {
         // System.out.println("   getLocation");
 
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, false, null);
+                Integer.valueOf(1234), image, 0, 0, raster, false, false, null);
 
         Point result = instance.getLocation();
         assertTrue(result.x == 0 && result.y == 0);
@@ -201,7 +201,7 @@ public class DiskCachedTileTest {
 
         Point p = new Point(1, 2);
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, p.x, p.y, raster, false, null);
+                Integer.valueOf(1234), image, p.x, p.y, raster, false, false, null);
 
         int result = instance.getTileX();
         assertEquals(p.x, result);
@@ -213,7 +213,7 @@ public class DiskCachedTileTest {
 
         Point p = new Point(1, 2);
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, p.x, p.y, raster, false, null);
+                Integer.valueOf(1234), image, p.x, p.y, raster, false, false, null);
 
         int result = instance.getTileY();
         assertEquals(p.y, result);
@@ -224,7 +224,7 @@ public class DiskCachedTileTest {
         // System.out.println("   isWritable");
 
         DiskCachedTile instance = new DiskCachedTile(
-                Integer.valueOf(1234), image, 0, 0, raster, false, null);
+                Integer.valueOf(1234), image, 0, 0, raster, false, false, null);
 
         assertTrue(instance.isWritable());
     }
@@ -234,15 +234,23 @@ public class DiskCachedTileTest {
     public void testReadWrite() throws Exception {
         // System.out.println("   writing and reading data");
 
-        testReadWriteImageType(DataBuffer.TYPE_BYTE, "TYPE_BYTE");
-        testReadWriteImageType(DataBuffer.TYPE_DOUBLE, "TYPE_DOUBLE");
-        testReadWriteImageType(DataBuffer.TYPE_FLOAT, "TYPE_FLOAT");
-        testReadWriteImageType(DataBuffer.TYPE_INT, "TYPE_INT");
-        testReadWriteImageType(DataBuffer.TYPE_SHORT, "TYPE_SHORT");
-        testReadWriteImageType(DataBuffer.TYPE_USHORT, "TYPE_USHORT");
+        testReadWriteImageType(DataBuffer.TYPE_BYTE, "TYPE_BYTE", false);
+        testReadWriteImageType(DataBuffer.TYPE_DOUBLE, "TYPE_DOUBLE", false);
+        testReadWriteImageType(DataBuffer.TYPE_FLOAT, "TYPE_FLOAT", false);
+        testReadWriteImageType(DataBuffer.TYPE_INT, "TYPE_INT", false);
+        testReadWriteImageType(DataBuffer.TYPE_SHORT, "TYPE_SHORT", false);
+        testReadWriteImageType(DataBuffer.TYPE_USHORT, "TYPE_USHORT", false);
+        
+        testReadWriteImageType(DataBuffer.TYPE_BYTE, "TYPE_BYTE", true);
+        testReadWriteImageType(DataBuffer.TYPE_DOUBLE, "TYPE_DOUBLE", true);
+        testReadWriteImageType(DataBuffer.TYPE_FLOAT, "TYPE_FLOAT", true);
+        testReadWriteImageType(DataBuffer.TYPE_INT, "TYPE_INT", true);
+        testReadWriteImageType(DataBuffer.TYPE_SHORT, "TYPE_SHORT", true);
+        testReadWriteImageType(DataBuffer.TYPE_USHORT, "TYPE_USHORT", true);
+
     }
 
-    private void testReadWriteImageType(int dataType, String typeName) throws Exception {
+    private void testReadWriteImageType(int dataType, String typeName, boolean compressFile) throws Exception {
         // System.out.println("      " + typeName);
 
         final int w = 10;
@@ -257,7 +265,7 @@ public class DiskCachedTileTest {
             }
         }
 
-        DiskCachedTile instance = new DiskCachedTile(0, img, 0, 0, r, true, null);
+        DiskCachedTile instance = new DiskCachedTile(0, img, 0, 0, r, true, compressFile, null);
         Raster read = instance.readData();
 
         assertNotNull(read);

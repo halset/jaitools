@@ -139,6 +139,7 @@ public class DiskMemImage
         Map<String, Object> cacheParams = new HashMap<String, Object>();
         cacheParams.put(DiskMemTileCache.KEY_INITIAL_MEMORY_CAPACITY, Long.valueOf(DEFAULT_COMMON_CACHE_SIZE));
         cacheParams.put(DiskMemTileCache.KEY_ALWAYS_DISK_CACHE, Boolean.FALSE);
+        cacheParams.put(DiskMemTileCache.KEY_COMPRESS_FILES, Boolean.TRUE);
         DiskMemTileCache cache = new DiskMemTileCache(cacheParams);
         cache.setDiagnostics(false);
 
